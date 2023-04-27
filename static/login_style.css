@@ -1,0 +1,43 @@
+.login_body {
+    background-image: url('https://coolbackgrounds.io/images/backgrounds/index/ranger-4df6c1b6.png');
+    background-size: cover;
+}
+
+.heading{
+    color: white;
+}
+
+.forms {
+
+    width: fit-content;
+    padding: 5px;
+    margin: auto;
+    margin-top: 200px;
+    text-align: center;
+    font-size:x-large;
+}
+
+#username {
+    margin-bottom: 20px;
+}
+
+input {
+    border: 2px solid blanchedalmond;
+    border-radius: 20px;
+    background-color: aliceblue;
+    text-align: center;
+    color: black;
+}
+#password{
+    margin-bottom: 20px;
+}
+
+.submit{
+    border: 2px solid blanchedalmond;
+    border-radius: 20px;
+    color: black;
+    background-color: aliceblue;
+}
+.submit:hover{
+    background-color:darkslategray;
+}

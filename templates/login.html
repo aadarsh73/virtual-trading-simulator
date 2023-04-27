@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" type="text/css" href="static/login_style.css">
+        <title>Document</title>
+    </head>
+
+    <body class="login_body">
+        <div class="forms">
+            <h1 class="heading">Login Form</h1>
+            <form action="/login" method="post" >
+               
+                <div id="username">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" placeholder="Enter Username">
+                </div>
+                <div id="password">
+                    <label for="password">Password:</label>
+                    <input type="text" id="password" name="password" placeholder="Enter password">
+                </div>
+                <button type="submit" class="submit">Submit</button>
+                {% if message %}
+                    <p>{{ message }}</p>
+                {% endif %}
+                <div>
+
+                </div>
+            </form>
+        </div>
+    </body>
+
+</html>

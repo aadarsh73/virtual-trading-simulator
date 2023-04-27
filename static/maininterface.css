@@ -1,0 +1,104 @@
+/* Reset default margin and padding */
+
+
+/* Set body background color and font style */
+body {
+  font-family: Arial, sans-serif;
+  background-image: url('https://coolbackgrounds.io/images/backgrounds/index/ranger-4df6c1b6.png');
+  background-size: cover;
+  color: white;
+  text-align: center;
+}
+
+
+h2,
+h1 {
+  text-decoration: underline 1px;
+}
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content:left;
+}
+
+#stock-symbol,
+#transaction-symbol,
+#transaction-quantity,
+#balance-input {
+  text-align: center;
+  border: 1px solid black;
+  border-radius: 10px;
+  padding: 5px;
+}
+
+#transaction-symbol {
+  width: 20%;
+}
+
+#transaction-quantity {
+  width: 8%;
+}
+
+#transaction-type {
+  padding: 5px;
+  border-radius: 15px;
+}
+
+#stock-search {
+  margin-right: 20px;
+}
+
+
+#search-button,
+#transaction-button,
+#balance-withdraw,
+#balance-deposit {
+  background-color: rgb(42, 80, 182);
+  border: none;
+  padding: 10px;
+  border-radius: 20px;
+}
+#balance-container{
+  border: 1px solid ;
+  padding: 10px;
+  width: fit-content;
+  margin: auto;
+  margin-bottom: 10px;
+}
+
+/* Style for portfolio table */
+#portfolio-table {
+  width: 50%;
+  border-collapse: collapse;
+  text-align: center;
+  margin: auto;
+}
+
+/* Style for portfolio table header */
+#portfolio-table th {
+  padding: 0.5rem;
+  background-color: #f8f8f8;
+  color: black;
+  font-weight: bold;
+  text-transform: uppercase;
+  border: 1px solid #000000;
+  background-color: rgb(38, 115, 230);
+}
+
+/* Style for portfolio table rows */
+#portfolio-table td {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+}
+
+/* Style for portfolio table row with total value */
+#portfolio-value {
+  text-align: right;
+  margin-top: 0.5rem;
+  font-weight: bold;
+}
+
+#transaction-history {
+  margin-top: 20px;
+}
