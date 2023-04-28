@@ -10,7 +10,7 @@ create table client(
 
 create table stock(
     stock_id varchar(20) primary key,
-    stock_name varchar(20) not null,
+    stock_name varchar(30) not null,
     symbl varchar(10) not null
 );
 
