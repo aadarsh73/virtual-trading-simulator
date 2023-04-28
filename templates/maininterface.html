@@ -12,21 +12,21 @@
     <body>
         <h1>Virtual Trading Simulator</h1>
         <div class="container">
-            <div id="stock-search">
+            <div id="stock-search" style="margin-top: 5%;">
                 <h2>Stock Search</h2>
                 <input type="text" id="stock-symbol" placeholder="Enter stock symbol">
                 <button onclick="searchStock()" id="search-button">Search</button>
                 <p id="stock-search-results"></p>
             </div>
 
-            <div>
+            <div style="width: 100%;">
                 <h2>Balance</h2>
                 <div id="balance-container">
                     Your Balance is:
                     <label for="" id="balance-display">{{balance}}</label>
                 </div>
                 <form action="{{url_for('balance_update', username=username)}}" method="post">
-                <div>
+                <div style="margin-top: 3%;">
                     <label for="balance-input">Enter amount:</label>
                   <input type="number" id="balance-input" name="balance" required>
                 </div>
@@ -37,11 +37,11 @@
                 {% if message_balanceupdate :%}
                 <p>{{message_balanceupdate}}</p>
                 {% endif %}    
-            </form>
+                </form>
                 
             </div>
 
-            <div id="portfolio">
+            <div id="portfolio" style="margin-top: 3%;">
                 <h2>My Portfolio</h2>
                 <table id="portfolio-table">
                     <tr>
@@ -53,15 +53,36 @@
                     </tr>
                 </table>
                 <p id="portfolio-value"></p>
+                
             </div>
 
-            <div id="transaction-history">
+            <div id="transaction-history" style="margin-top: 5%;">
                 <h2>Transaction History</h2>
-                <ul id="transaction-list">
-                </ul>
+                <table id = "portfolio-table">
+                    <thead>
+                      <tr>
+                        <th>Transaction ID</th>
+                        <th>Transaction Type</th>
+                        <th>Amount</th>
+                        <th>Balance</th>
+                        <th>Transaction Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                          <tr>
+                            <td>{{ transaction[1] }}</td>
+                            <td>{{ transaction[2] }}</td>
+                            <td>{{ transaction[4] }}</td>
+                            <td>{{ transaction[5] }}</td>
+                            <td>{{ transaction[3] }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                  </table>
             </div>
 
-            <div id="buy-sell-form">
+            <div id="buy-sell-form" style="margin-top: 3%;">
                 <h2>Buy/Sell Stocks</h2>
                 <form onsubmit="submitTransactionForm(event)">
                     <input type="text" id="transaction-symbol" placeholder="Stock Symbol">

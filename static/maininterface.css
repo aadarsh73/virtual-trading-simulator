@@ -17,7 +17,7 @@ h1 {
 }
 
 .container {
-  display: flex;
+  display: block;
   align-items: center;
   justify-content:left;
 }
@@ -46,6 +46,7 @@ h1 {
 }
 
 #stock-search {
+  width: 100%;
   margin-right: 20px;
 }
 
@@ -62,7 +63,6 @@ h1 {
 #balance-container{
   border: 1px solid ;
   padding: 10px;
-  width: fit-content;
   margin: auto;
   margin-bottom: 10px;
 }
@@ -99,6 +99,8 @@ h1 {
   font-weight: bold;
 }
 
+
 #transaction-history {
   margin-top: 20px;
+  width: 100%;
 }

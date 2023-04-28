@@ -58,6 +58,9 @@ create table transaction(
     foreign key (client_id) references client(client_id)
 );
 
+ALTER TABLE transaction ADD final_balance INT;
+
+
 create table price_history(
     stock_id varchar(20) not null,
     price int,
@@ -69,10 +72,24 @@ create table price_history(
 CREATE OR REPLACE TRIGGER check_balance_trigger
 BEFORE UPDATE ON client
 FOR EACH ROW
-WHEN (NEW.balance < 0)
 BEGIN
+  IF (:NEW.balance<0) THEN
     RAISE_APPLICATION_ERROR(-20001, 'Insufficient balance');
   END IF;
 END;
 /
 
+CREATE OR REPLACE PROCEDURE update_transaction(client_id_in IN VARCHAR2, transaction_type_in IN VARCHAR2, amount_in IN NUMBER) AS
+  l_tid VARCHAR2(20);
+  bal int;
+BEGIN
+  SELECT MAX(TO_NUMBER(tid)) + 1 INTO l_tid FROM transaction;
+  select balance into bal from client where client_id=client_id_in;
+  IF l_tid IS NULL THEN
+    l_tid := '1';
+  END IF;
+  INSERT INTO transaction VALUES (client_id_in, l_tid, transaction_type_in, SYSDATE, amount_in, bal);
+END;
+/
+
+EXEC update_transaction('123456', 'Withdrawal', 500);

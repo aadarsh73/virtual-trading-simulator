@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 @app.route('/') 
 def hello_world():
-    return 'Hello, World!!'
+    return 'Welcome to Virtual Trading Simulator!'
 
 @app.route('/login', methods = ['POST', 'GET'])
 def user_login():
@@ -22,7 +22,7 @@ def user_login():
         result = cursor.fetchone()
 
         if result:
-            return redirect(url_for('dashboard', username=username))
+            return redirect(url_for('dashboard', username=username, message_balanceupdate=""))
         else:
             return render_template('login.html', message='Invalid username or password')
     return render_template('login.html')
@@ -49,14 +49,17 @@ def user_register():
     return render_template('register.html')
 
 @app.route('/dashboard/<username>')
-def dashboard(username):
+def dashboard(username, message_balanceupdate=None):
     dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
     con = cx_Oracle.connect(user="system", password="oracle", dsn=dsn)
     cursor = con.cursor()
     query = "SELECT balance FROM client WHERE client_id=:username"
     cursor.execute(query, {'username': username})
     bal = cursor.fetchone()
-    return render_template('maininterface.html', username=username, balance = bal[0])
+    query="select * from transaction where client_id=:username order by transaction_date desc"
+    cursor.execute(query, {'username': username})
+    transactions = cursor.fetchall()
+    return render_template('maininterface.html', username=username, balance = bal[0], transactions = transactions, message_balanceupdate=message_balanceupdate)
         
 @app.route('/dashboard/<username>/balance_update', methods=['POST', 'GET'])
 def balance_update(username):
@@ -73,7 +76,12 @@ def balance_update(username):
             query = "select balance from client where client_id=:username"
             cursor.execute(query, {'username': username})
             balance = int(cursor.fetchone()[0])
-            return render_template('maininterface.html', username=username,balance=balance,message_balanceupdate='Deposit successful')
+            cursor.callproc('update_transaction', [username, 'Deposit', amount])
+            con.commit()
+            
+            return redirect(url_for('dashboard', username=username, message_balanceupdate="Deposit successful"))
+
+            # return render_template('maininterface.html', username=username,balance=balance,message_balanceupdate='Deposit successful')
             # Update balance with deposit amount
         elif action == 'withdraw':
             try:
@@ -86,12 +94,18 @@ def balance_update(username):
                 query = "select balance from client where client_id=:username"
                 cursor.execute(query, {'username': username})
                 balance = int(cursor.fetchone()[0])
-                return render_template('maininterface.html', username=username,balance=balance, message_balanceupdate='Withdraw successful')
+                cursor.callproc('update_transaction', [username, 'Withdraw', amount])
+                con.commit()
+                return redirect (url_for('dashboard', username=username, message_balanceupdate='Withdraw successful'))
+                # return render_template('maininterface.html', username=username,balance=balance, message_balanceupdate='Withdraw successful')
             except cx_Oracle.DatabaseError as e:
                 query = "select balance from client where client_id=:username"
                 cursor.execute(query, {'username': username})
                 balance = int(cursor.fetchone()[0])
-                return render_template('maininterface.html', username=username,balance=balance, message_balanceupdate=f'Error {e}')
+                cursor.callproc('update_transaction', [username, 'Failed', amount])
+                con.commit()
+                return redirect(url_for('dashboard', username=username,  message_balanceupdate=str(e)))
+                # return render_template('maininterface.html', username=username,balance=balance, message_balanceupdate=f'Error {e}')
             # if result[0] < int(amount):
             #     return redirect(url_for('dashboard', username=username,  message_balanceupdate='Insufficient balance'))
             # else:
@@ -100,6 +114,6 @@ def balance_update(username):
             #     con.commit()
             #     return redirect(url_for('dashboard', username=username,  message_balanceupdate='Withdraw successful'))
             # Update balance with negative of withdraw amount
-        return redirect(url_for('dashboard', username=username))
+        return redirect(url_for('dashboard', username=username, message_balanceupdate=""))
 if __name__ == '__main__':
     app.run(debug=True)
