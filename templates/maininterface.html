@@ -3,10 +3,12 @@
 
     <head>
         <meta charset="UTF-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='maininterface.css') }}">
-        <title>Main interface</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='maininterface.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <title>Main interface</title>
     </head>
 
     <body>
@@ -85,7 +87,8 @@
             <div id="buy-sell-form" style="margin-top: 3%;">
                 <h2>Buy/Sell Stocks</h2>
                 <form onsubmit="submitTransactionForm(event)">
-                    <input type="text" id="transaction-symbol" placeholder="Stock Symbol">
+                    <input type="text" name="symbl" id="symbl" placeholder="Stock Symbol">
+                    
                     <input type="number" id="transaction-quantity" placeholder="Quantity">
                     <select id="transaction-type">
                         <option value="buy">Buy</option>
@@ -96,6 +99,20 @@
                 <p id="transaction-error"></p>
             </div>
         </div>
+        <script>    
+            $(document).ready(function() {
+                $('#symbl').autocomplete({
+                    source: function(request, response) {
+                        $.getJSON('/autocomplete', {
+                            q: request.term
+                        }, function(data) {
+                            response(data.matches);
+                        });
+                    },
+                    minLength: 1
+                });
+            });
+        </script>
 
     </body>
 

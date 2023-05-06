@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 import cx_Oracle
 
 app = Flask(__name__)
@@ -115,5 +115,27 @@ def balance_update(username):
             #     return redirect(url_for('dashboard', username=username,  message_balanceupdate='Withdraw successful'))
             # Update balance with negative of withdraw amount
         return redirect(url_for('dashboard', username=username, message_balanceupdate=""))
+    
+# 
+# def autocomplete():
+#     search = request.args.get('search')
+#     dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
+#     con = cx_Oracle.connect(user="system", password="oracle", dsn=dsn)
+#     cursor = con.cursor()
+#     cursor.execute("SELECT symbl FROM stock WHERE symbl LIKE :search", {'search': search+'%'})
+#     suggestions = [row[0] for row in cursor.fetchall()]
+#     cursor.close()
+#     con.close()
+#     return jsonify(suggestions)
+@app.route('/autocomplete')
+def autocomplete():
+    dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
+    con = cx_Oracle.connect(user="system", password="oracle", dsn=dsn)
+    search = request.args.get('q')
+    cursor = con.cursor()
+    cursor.execute("SELECT symbl FROM stock WHERE symbl LIKE '%" + search + "%'")
+    results = cursor.fetchall()
+    return jsonify([item[0] for item in results])
+
 if __name__ == '__main__':
     app.run(debug=True)
