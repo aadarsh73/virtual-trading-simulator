@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
+from yahoo_fin.stock_info import *
 import cx_Oracle
 
 app = Flask(__name__)
@@ -22,7 +23,7 @@ def user_login():
         result = cursor.fetchone()
 
         if result:
-            return redirect(url_for('dashboard', username=username, message_balanceupdate=""))
+            return redirect(url_for('dashboard', username=username, message_balanceupdate="",result=""))
         else:
             return render_template('login.html', message='Invalid username or password')
     return render_template('login.html')
@@ -48,8 +49,43 @@ def user_register():
     
     return render_template('register.html')
 
-@app.route('/dashboard/<username>')
-def dashboard(username, message_balanceupdate=None):
+# @app.route('/dashboard/<username>')
+# def dashboard(username):
+#     dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
+#     con = cx_Oracle.connect(user="system", password="oracle", dsn=dsn)
+#     cursor = con.cursor()
+#     query = "SELECT balance FROM client WHERE client_id=:username"
+#     cursor.execute(query, {'username': username})
+#     bal = cursor.fetchone()
+#     query="select * from transaction where client_id=:username order by transaction_date desc"
+#     cursor.execute(query, {'username': username})
+#     transactions = cursor.fetchall()
+
+#     search_results = []
+#     if request.method == 'POST':
+#         symbol = request.form['stock_input']
+#         action = request.form['action']
+#         if action == 'search':
+#             query = """
+#             SELECT s.symbl, s.stock_name, p.quantity
+#             FROM stock s
+#             LEFT JOIN (
+#                 SELECT stock_id, quantity
+#                 FROM portfolio
+#                 WHERE client_id = :userid
+#             ) p ON s.stock_id = p.stock_id
+#             WHERE s.symbl = :symbol
+#             """
+#             cursor.execute(query, {'userid': username, 'symbol': symbol})
+#             rows = cursor.fetchall()
+#             quote = get_live_price(f'{symbol}.NS')
+#             for row in rows:
+#                 search_results.append({'symbol': row[0], 'name': row[1], 'quantity': row[2], 'price': quote})
+
+#     return render_template('maininterface.html', username=username, balance = bal[0], transactions = transactions)
+
+@app.route('/dashboard/<username>', methods=['GET', 'POST'])
+def dashboard(username):
     dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
     con = cx_Oracle.connect(user="system", password="oracle", dsn=dsn)
     cursor = con.cursor()
@@ -59,8 +95,35 @@ def dashboard(username, message_balanceupdate=None):
     query="select * from transaction where client_id=:username order by transaction_date desc"
     cursor.execute(query, {'username': username})
     transactions = cursor.fetchall()
-    return render_template('maininterface.html', username=username, balance = bal[0], transactions = transactions, message_balanceupdate=message_balanceupdate)
-        
+
+    
+
+
+    if request.method == 'POST':
+        symbol = request.form['stock_input']
+        action = request.form['action']
+        search_results = []
+        if action == 'search':
+            query = """
+            SELECT s.symbl, s.stock_name, p.quantity
+            FROM stock s
+            LEFT JOIN (
+                SELECT stock_id, quantity
+                FROM portfolio
+                WHERE client_id = :userid
+            ) p ON s.stock_id = p.stock_id
+            WHERE s.symbl = :symbol
+            """
+            cursor.execute(query, {'userid': username, 'symbol': symbol})
+            rows = cursor.fetchall()
+            quote = get_live_price(f'{symbol}.NS')
+            quote = "{:.2f}".format(quote)
+            for row in rows:
+                search_results.append({'symbol': row[0], 'name': row[1], 'quantity': row[2], 'price': quote})
+            return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=search_results)
+
+    return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[])
+
 @app.route('/dashboard/<username>/balance_update', methods=['POST', 'GET'])
 def balance_update(username):
     if request.method=='POST':
@@ -79,7 +142,7 @@ def balance_update(username):
             cursor.callproc('update_transaction', [username, 'Deposit', amount])
             con.commit()
             
-            return redirect(url_for('dashboard', username=username, message_balanceupdate="Deposit successful"))
+            return redirect(url_for('dashboard', username=username, message_balanceupdate="Deposit successful", stockid=""))
 
             # return render_template('maininterface.html', username=username,balance=balance,message_balanceupdate='Deposit successful')
             # Update balance with deposit amount
@@ -96,7 +159,7 @@ def balance_update(username):
                 balance = int(cursor.fetchone()[0])
                 cursor.callproc('update_transaction', [username, 'Withdraw', amount])
                 con.commit()
-                return redirect (url_for('dashboard', username=username, message_balanceupdate='Withdraw successful'))
+                return redirect (url_for('dashboard', username=username, message_balanceupdate='Withdraw successful', stockid="yrest"))
                 # return render_template('maininterface.html', username=username,balance=balance, message_balanceupdate='Withdraw successful')
             except cx_Oracle.DatabaseError as e:
                 query = "select balance from client where client_id=:username"
@@ -114,28 +177,7 @@ def balance_update(username):
             #     con.commit()
             #     return redirect(url_for('dashboard', username=username,  message_balanceupdate='Withdraw successful'))
             # Update balance with negative of withdraw amount
-        return redirect(url_for('dashboard', username=username, message_balanceupdate=""))
-    
-# 
-# def autocomplete():
-#     search = request.args.get('search')
-#     dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
-#     con = cx_Oracle.connect(user="system", password="oracle", dsn=dsn)
-#     cursor = con.cursor()
-#     cursor.execute("SELECT symbl FROM stock WHERE symbl LIKE :search", {'search': search+'%'})
-#     suggestions = [row[0] for row in cursor.fetchall()]
-#     cursor.close()
-#     con.close()
-#     return jsonify(suggestions)
-@app.route('/autocomplete')
-def autocomplete():
-    dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
-    con = cx_Oracle.connect(user="system", password="oracle", dsn=dsn)
-    search = request.args.get('q')
-    cursor = con.cursor()
-    cursor.execute("SELECT symbl FROM stock WHERE symbl LIKE '%" + search + "%'")
-    results = cursor.fetchall()
-    return jsonify([item[0] for item in results])
+        return redirect(url_for('dashboard', username=username, message_balanceupdate="", stockid=""))
 
 if __name__ == '__main__':
     app.run(debug=True)

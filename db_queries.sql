@@ -93,3 +93,6 @@ END;
 /
 
 EXEC update_transaction('123456', 'Withdrawal', 500);
+
+
+select * 
