@@ -139,7 +139,7 @@ def dashboard(username):
     #     WHERE p.client_id = :username
     #     """
     portfolio_query = '''
-        SELECT s.stock_id, s.stock_name, s.symbl, p.quantity, p.stock_value, AVG(o.price) as buy_price
+        SELECT s.stock_id, s.stock_name, s.symbl, p.quantity, AVG(o.price) as buy_price
         FROM stock s
         INNER JOIN portfolio p ON s.stock_id = p.stock_id
         LEFT JOIN (
@@ -147,15 +147,42 @@ def dashboard(username):
             FROM (
                 SELECT stock_id, price
                 FROM orders
-                WHERE client_id = :username AND order_type = 'buy'
+                WHERE client_id = :username AND order_type = 'BUY'
                 ORDER BY date_time DESC
             )
             WHERE ROWNUM <= 5
         ) o ON s.stock_id = o.stock_id
         WHERE p.client_id = :username
-        GROUP BY s.stock_id, s.stock_name, s.symbl, p.quantity, p.stock_value
+        GROUP BY s.stock_id, s.stock_name, s.symbl, p.quantity, o.price
         '''
     portfolio = cursor.execute(portfolio_query, {'username': username}).fetchall()
+    alterable_portfolio = []
+    profit = 0
+    invested = 0
+    curr_val = 0
+    
+    for x in portfolio:
+        alterable_portfolio.append(list(x))
+    print(alterable_portfolio)
+    for x in alterable_portfolio:
+        if x[4] == None:
+            break;
+        quote = get_live_price(f'{x[2]}.NS')
+        print("Quote is " + str(quote))
+        x.append("{:.2f}".format(quote))
+        x.append("{:.2f}".format(x[3]*quote))
+        x.append("{:.2f}".format(x[3]*x[4]))
+        x.append("{:.2f}".format(float(x[6])-float(x[7])))
+        profit += float(x[8])
+        invested += float(x[7])
+        curr_val += float(x[6])
+    
+    alterable_portfolio.append("{:.2f}".format(profit))
+    alterable_portfolio.append(invested)
+    alterable_portfolio.append(curr_val)
+    alterable_portfolio.append(len(alterable_portfolio)+1)
+    # print(alterable_portfolio)
+    portfolio = alterable_portfolio
 
     if request.method == 'POST':
         symbol = request.form['stock_input']
@@ -179,7 +206,34 @@ def dashboard(username):
             for row in rows:
                 search_results.append({'symbol': row[0], 'name': row[1], 'quantity': row[2], 'price': quote})
             portfolio = cursor.execute(portfolio_query, {'username': username}).fetchall()
-            return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=search_results, portfolio=portfolio)
+            alterable_portfolio = []
+            profit = 0
+            invested = 0
+            curr_val = 0
+            
+            for x in portfolio:
+                alterable_portfolio.append(list(x))
+            print(alterable_portfolio)
+            for x in alterable_portfolio:
+                if x[4] == None:
+                    break;
+                quote = get_live_price(f'{x[2]}.NS')
+                print("Quote is " + str(quote))
+                x.append("{:.2f}".format(quote))
+                x.append("{:.2f}".format(x[3]*quote))
+                x.append("{:.2f}".format(x[3]*x[4]))
+                x.append("{:.2f}".format(float(x[6])-float(x[7])))
+                profit += float(x[8])
+                invested += float(x[7])
+                curr_val += float(x[6])
+            
+            alterable_portfolio.append("{:.2f}".format(profit))
+            alterable_portfolio.append(invested)
+            alterable_portfolio.append(curr_val)
+            alterable_portfolio.append(len(alterable_portfolio)+1)
+            # print(alterable_portfolio)
+            portfolio = alterable_portfolio
+            return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=search_results, portfolio=portfolio, symbol = symbol)
         elif action == 'buy':
             stock_symbol = request.form['stock_input']
             quantity = int(request.form['order_quantity'])
@@ -229,6 +283,34 @@ def dashboard(username):
             cursor.execute(query, {'username': username})
             transactions = cursor.fetchall()
             portfolio = cursor.execute(portfolio_query, {'username': username}).fetchall()
+            alterable_portfolio = []
+            profit = 0
+            invested = 0
+            curr_val = 0
+            
+            for x in portfolio:
+                alterable_portfolio.append(list(x))
+            print(alterable_portfolio)
+            for x in alterable_portfolio:
+                if x[4] == None:
+                    break;
+                quote = get_live_price(f'{x[2]}.NS')
+                print("Quote is " + str(quote))
+                x.append("{:.2f}".format(quote))
+                x.append("{:.2f}".format(x[3]*quote))
+                x.append("{:.2f}".format(x[3]*x[4]))
+                x.append("{:.2f}".format(float(x[6])-float(x[7])))
+                profit += float(x[8])
+                invested += float(x[7])
+                curr_val += float(x[6])
+            
+            alterable_portfolio.append("{:.2f}".format(profit))
+            alterable_portfolio.append(invested)
+            alterable_portfolio.append(curr_val)
+            alterable_portfolio.append(len(alterable_portfolio)+1)
+            # print(alterable_portfolio)
+            portfolio = alterable_portfolio
+            
             con.commit()
             con.close()
             action=''
@@ -267,6 +349,33 @@ def dashboard(username):
             cursor.execute(query, {'username': username})
             transactions = cursor.fetchall()
             portfolio = cursor.execute(portfolio_query, {'username': username}).fetchall()
+            alterable_portfolio = []
+            profit = 0
+            invested = 0
+            curr_val = 0
+            
+            for x in portfolio:
+                alterable_portfolio.append(list(x))
+            print(alterable_portfolio)
+            for x in alterable_portfolio:
+                if x[4] == None:
+                    break;
+                quote = get_live_price(f'{x[2]}.NS')
+                print("Quote is " + str(quote))
+                x.append("{:.2f}".format(quote))
+                x.append("{:.2f}".format(x[3]*quote))
+                x.append("{:.2f}".format(x[3]*x[4]))
+                x.append("{:.2f}".format(float(x[6])-float(x[7])))
+                profit += float(x[8])
+                invested += float(x[7])
+                curr_val += float(x[6])
+            
+            alterable_portfolio.append("{:.2f}".format(profit))
+            alterable_portfolio.append(invested)
+            alterable_portfolio.append(curr_val)
+            alterable_portfolio.append(len(alterable_portfolio)+1)
+            # print(alterable_portfolio)
+            portfolio = alterable_portfolio
             con.commit()
             con.close()
             action=''
@@ -303,15 +412,15 @@ def balance_update(username):
                 query = "select balance from client where client_id=:username"
                 cursor.execute(query, {'username': username})
                 result = cursor.fetchone()
-                # query = "UPDATE client SET balance = balance - :amount WHERE client_id=:username"
-                # cursor.execute(query, {'amount': amount, 'username': username})
+                query = "UPDATE client SET balance = balance - :amount WHERE client_id=:username"
+                cursor.execute(query, {'amount': amount, 'username': username})
                 con.commit()
                 query = "select balance from client where client_id=:username"
                 cursor.execute(query, {'username': username})
                 balance = float(cursor.fetchone()[0])
                 cursor.callproc('update_transaction', [username, 'Withdraw', amount])
                 con.commit()
-                return redirect (url_for('dashboard', username=username, message_balanceupdate='Withdraw successful', stockid="yrest"))
+                return redirect (url_for('dashboard', username=username, message_balanceupdate='Withdraw successful'))
                 # return render_template('maininterface.html', username=username,balance=balance, message_balanceupdate='Withdraw successful')
             except cx_Oracle.DatabaseError as e:
                 query = "select balance from client where client_id=:username"

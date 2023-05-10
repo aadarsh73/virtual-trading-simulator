@@ -14,14 +14,61 @@
     <body>
         <h1>Virtual Trading Simulator</h1>
         <div class="container">
-            <div id="stock-search" style="margin-top: 5%;">
+            <!-- <div id="stock-search" style="margin-top: 5%;">
                 <h2>Stock Search</h2>
                 <input type="text" id="stock-symbol" placeholder="Enter stock symbol">
                 <button onclick="searchStock()" id="search-button">Search</button>
                 <p id="stock-search-results"></p>
+            </div> -->
+            <div id="buy-sell-form" style="margin-top: 3%;">
+                <h2>Buy/Sell Stocks</h2>
+                
+                <form action="{{url_for('dashboard', username=username)}}" method="post">
+                    <input type="text" id="stock-input" name="stock_input" value="{{symbol}}" required>
+                    <button type="submit" id="search-stock" name="action" value="search">Search</button>
+                    
+                    <input type="number" id="order-quantity" placeholder="Quantity" name="order_quantity">
+                    <!-- <select id="transaction-type">
+                        <option value="buy">Buy</option>
+                        <option value="sell">Sell</option>
+                    </select> -->
+                    <button type="submit" id="buy-stock" name="action" value="buy">Buy</button>
+                    <button type="submit" id="sell-stock" name="action" value="sell">Sell</button>
+                </form>
+                {% if message :%}
+                <div>
+                <p>{{message}}</p>
+                </div>
+                {% endif %}
+                {% if search_results %}
+                <table id="portfolio-table" style='margin-top:1%'>
+                    <thead>
+                      <tr>
+                        <th>Stock Symbol</th>
+                        <th>Stock Name</th>
+                        <th>Current Price</th>
+                        <th>Quantity Available</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+              
+                      
+                      {% for result in search_results %}
+                      <tr>
+                        <td>{{ result.symbol }}</td>
+                        <td>{{ result.name }}</td>
+                        <td>{{ result.price }}</td>
+                        <td>{{ result.quantity }}</td>
+                      </tr>
+                      {% endfor %}
+                      
+                    </tbody>
+                  </table>
+                  {% endif %}
+                <p id="transaction-error"></p>
             </div>
 
-            <div style="width: 100%;">
+            <div style="width: 100%; margin-top: 3%;">
                 <h2>Balance</h2>
                 <div id="balance-container">
                     Your Balance is:
@@ -48,30 +95,51 @@
                 <table id="portfolio-table">
                     <thead>
                         <tr>
-                            <th>Stock ID</th>
-                            <th>Company Name</th>
+                            <th>Symbol</th>
+                            <th>Stock</th>
                             <th>Quantity</th>
-                            <th>Stock Value</th>
-                            <th>Average Buy Price</th>
+                            <th>Avg. Buy Price</th>
+                            <th>Current Price</th>
+                            <th>Current Value</th>
+                            <th>Profit/Loss</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {% for row in portfolio %}
+                        
+                        {% for row in range(portfolio[-1]-4) %}
                         <tr>
-                            <td>{{ row[0] }}</td>
-                            <td>{{ row[1] }}</td>
-                            <td>{{ row[2] }}</td>
-                            <td>{{ row[3] }}</td>
-                            <td>{{ row[4] }}</td>
+                            <td>{{ portfolio[row][2] }}</td>
+                            <td>{{ portfolio[row][1] }}</td>
+                            <td>{{ portfolio[row][3] }}</td>   
+                            <td>{{ portfolio[row][4] }}</td>
+                            <td>{{ portfolio[row][5] }}</td>
+                            <td>{{ portfolio[row][6] }}</td>   
+                            <td>{{ portfolio[row][8] }}</td>
                         </tr>
-                        {% endfor %}
+                        
+                    {% endfor %}
                       </tbody>
                 </table>
-                <p id="portfolio-value"></p>
+                <table id="portfolio-table">
+                    <thead>
+                        <tr>
+                            <th>Invested</th>
+                            <th>Total Value</th>
+                            <th>Net Profit/Loss</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                            <td>{{ portfolio[-3]}}</td>
+                            <td>{{ portfolio[-2] }}</td>
+                            <td>{{ portfolio[-4] }}</td>
+                        </tr>
+                      </tbody>  
+                </table>
                 
             </div>
 
-            <div id="transaction-history" style="margin-top: 5%;">
+            <div id="transaction-history" style="margin-top: 5%; margin-bottom: 3.2%;">
                 <h2>Transaction History</h2>
                 <table id = "portfolio-table">
                     <thead>
@@ -97,52 +165,7 @@
                   </table>
             </div>
 
-            <div id="buy-sell-form" style="margin-top: 3%;">
-                <h2>Buy/Sell Stocks</h2>
-                
-                <form action="{{url_for('dashboard', username=username)}}" method="post">
-                    <input type="text" id="stock-input" name="stock_input" required>
-                    <button type="submit" id="search-stock" name="action" value="search">Search</button>
-                    
-                    <input type="number" id="order-quantity" placeholder="Quantity" name="order_quantity">
-                    <!-- <select id="transaction-type">
-                        <option value="buy">Buy</option>
-                        <option value="sell">Sell</option>
-                    </select> -->
-                    <button type="submit" id="buy-stock" name="action" value="buy">Buy</button>
-                    <button type="submit" id="sell-stock" name="action" value="sell">Sell</button>
-                </form>
-                {% if message :%}
-                <div>
-                <p>{{message}}</p>
-                </div>
-                {% endif %}
-                <table id="portfolio-table" style='margin-top:1%'>
-                    <thead>
-                      <tr>
-                        <th>Stock Symbol</th>
-                        <th>Stock Name</th>
-                        <th>Current Price</th>
-                        <th>Quantity Available</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-              
-                      {% if search_results %}
-                      {% for result in search_results %}
-                      <tr>
-                        <td>{{ result.symbol }}</td>
-                        <td>{{ result.name }}</td>
-                        <td>{{ result.price }}</td>
-                        <td>{{ result.quantity }}</td>
-                      </tr>
-                      {% endfor %}
-                      {% endif %}
-                    </tbody>
-                  </table>
-                
-                <p id="transaction-error"></p>
-            </div>
+            
         </div>
 
     </body>

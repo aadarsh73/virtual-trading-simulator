@@ -1,3 +1,5 @@
-.env
+.envgit rm --cached `git ls-files -i -c --exclude-from=.gitignore`
 db_queries.sql
 test.py
+get_stock_data.py
+.env
