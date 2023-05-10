@@ -46,13 +46,26 @@
             <div id="portfolio" style="margin-top: 3%;">
                 <h2>My Portfolio</h2>
                 <table id="portfolio-table">
-                    <tr>
-                        <th>Stock Symbol</th>
-                        <th>Buy Price</th>
-                        <th>Current Price</th>
-                        <th>Quantity</th>
-                        <th>Total Value</th>
-                    </tr>
+                    <thead>
+                        <tr>
+                            <th>Stock ID</th>
+                            <th>Company Name</th>
+                            <th>Quantity</th>
+                            <th>Stock Value</th>
+                            <th>Average Buy Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for row in portfolio %}
+                        <tr>
+                            <td>{{ row[0] }}</td>
+                            <td>{{ row[1] }}</td>
+                            <td>{{ row[2] }}</td>
+                            <td>{{ row[3] }}</td>
+                            <td>{{ row[4] }}</td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
                 </table>
                 <p id="portfolio-value"></p>
                 
