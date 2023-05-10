@@ -48,10 +48,10 @@
                 <table id="portfolio-table">
                     <tr>
                         <th>Stock Symbol</th>
-                        <th>Shares</th>
+                        <th>Buy Price</th>
                         <th>Current Price</th>
+                        <th>Quantity</th>
                         <th>Total Value</th>
-                        <th>Actions</th>
                     </tr>
                 </table>
                 <p id="portfolio-value"></p>
@@ -91,37 +91,42 @@
                     <input type="text" id="stock-input" name="stock_input" required>
                     <button type="submit" id="search-stock" name="action" value="search">Search</button>
                     
-                    <input type="number" id="transaction-quantity" placeholder="Quantity">
-                    <select id="transaction-type">
+                    <input type="number" id="order-quantity" placeholder="Quantity" name="order_quantity">
+                    <!-- <select id="transaction-type">
                         <option value="buy">Buy</option>
                         <option value="sell">Sell</option>
-                    </select>
-                    <button type="submit" id="searchStock" name="action" value="submit">Submit</button>
-                    <table id="portfolio-table" style='margin-top:1%'>
-                        <thead>
-                          <tr>
-                            <th>Stock Symbol</th>
-                            <th>Stock Name</th>
-                            <th>Current Price</th>
-                            <th>Quantity Available</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                  
-                          {% if search_results %}
-                          {% for result in search_results %}
-                          <tr>
-                            <td>{{ result.symbol }}</td>
-                            <td>{{ result.name }}</td>
-                            <td>{{ result.price }}</td>
-                            <td>{{ result.quantity }}</td>
-                          </tr>
-                          {% endfor %}
-                          {% endif %}
-                        </tbody>
-                      </table>
+                    </select> -->
+                    <button type="submit" id="buy-stock" name="action" value="buy">Buy</button>
+                    <button type="submit" id="sell-stock" name="action" value="sell">Sell</button>
                 </form>
-                    
+                {% if message :%}
+                <div>
+                <p>{{message}}</p>
+                </div>
+                {% endif %}
+                <table id="portfolio-table" style='margin-top:1%'>
+                    <thead>
+                      <tr>
+                        <th>Stock Symbol</th>
+                        <th>Stock Name</th>
+                        <th>Current Price</th>
+                        <th>Quantity Available</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+              
+                      {% if search_results %}
+                      {% for result in search_results %}
+                      <tr>
+                        <td>{{ result.symbol }}</td>
+                        <td>{{ result.name }}</td>
+                        <td>{{ result.price }}</td>
+                        <td>{{ result.quantity }}</td>
+                      </tr>
+                      {% endfor %}
+                      {% endif %}
+                    </tbody>
+                  </table>
                 
                 <p id="transaction-error"></p>
             </div>

@@ -41,10 +41,11 @@ create table watchlist(
 );
 
 create table portfolio(
-    client_id varchar(20) primary key not null,
+    client_id varchar(20) not null,
     stock_id varchar(20) not null,
     quantity int,
     stock_value int,
+    primary key (client_id,stock_id),
     foreign key (client_id) references client(client_id),
     foreign key (stock_id) references stock(stock_id)
 );

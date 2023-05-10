@@ -98,6 +98,8 @@ def dashboard(username):
 
     
 
+    
+
 
     if request.method == 'POST':
         symbol = request.form['stock_input']
@@ -121,7 +123,57 @@ def dashboard(username):
             for row in rows:
                 search_results.append({'symbol': row[0], 'name': row[1], 'quantity': row[2], 'price': quote})
             return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=search_results)
+        elif action == 'buy':
+            stock_symbol = request.form['stock_input']
+            quantity = int(request.form['order_quantity'])
+            quote = get_live_price(f'{symbol}.NS')
+            price = "{:.2f}".format(quote)
+            price =int(float(price))    
+            total_cost = quantity * price
+            
+            dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
+            con = cx_Oracle.connect(user="system", password="oracle", dsn=dsn)
+            cursor = con.cursor()
+            
+            query = "SELECT balance FROM client WHERE client_id=:username"
+            cursor.execute(query, {'username': username})
+            balance = int(cursor.fetchone()[0])
+            
+            if total_cost > balance:
+                message = "Insufficient funds to make purchase."
+                return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], message = message)
+            
+            # Deduct total cost from balance
+            new_balance = balance - total_cost
+            query = "UPDATE client SET balance=:new_balance WHERE client_id=:username"
+            cursor.execute(query, {'new_balance': new_balance, 'username': username})
+            
+            # Add new stock purchase to portfolio
+            query = "SELECT stock_id FROM stock WHERE symbl=:stock_symbol"
+            cursor.execute(query, {'stock_symbol': stock_symbol})
+            stock_id = cursor.fetchone()[0]
+            
+            query = "SELECT quantity FROM portfolio WHERE client_id=:username AND stock_id=:stock_id"
+            cursor.execute(query, {'username': username, 'stock_id': stock_id})
+            result = cursor.fetchone()
+            
+            if result:
+                # Stock is already in portfolio, update quantity
+                new_quantity = result[0] + quantity
+                query = "UPDATE portfolio SET quantity=:new_quantity WHERE client_id=:username AND stock_id=:stock_id"
+                cursor.execute(query, {'new_quantity': new_quantity, 'username': username, 'stock_id': stock_id})
+            else:
+                # Stock is not in portfolio, insert new row
+                query = "INSERT INTO portfolio (client_id, stock_id, quantity) VALUES (:username, :stock_id, :quantity)"
+                cursor.execute(query, {'username': username, 'stock_id': stock_id, 'quantity': quantity})
+            
+            con.commit()
+            con.close()
+            
+            message = f"{quantity} shares of {stock_symbol} purchased for Rs.{total_cost:.2f}."
+            return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], message = message)
 
+    
     return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[])
 
 @app.route('/dashboard/<username>/balance_update', methods=['POST', 'GET'])
@@ -178,6 +230,55 @@ def balance_update(username):
             #     return redirect(url_for('dashboard', username=username,  message_balanceupdate='Withdraw successful'))
             # Update balance with negative of withdraw amount
         return redirect(url_for('dashboard', username=username, message_balanceupdate="", stockid=""))
+
+@app.route('/dashboard/<username>/buy', methods=['POST'])
+def buy(username):
+    stock_symbol = request.form['stock_symbol']
+    quantity = int(request.form['quantity'])
+    price = float(request.form['price'])
+    total_cost = quantity * price
+    
+    dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
+    con = cx_Oracle.connect(user="system", password="oracle", dsn=dsn)
+    cursor = con.cursor()
+    
+    query = "SELECT balance FROM client WHERE client_id=:username"
+    cursor.execute(query, {'username': username})
+    balance = cursor.fetchone()[0]
+    
+    if total_cost > balance:
+        message = "Insufficient funds to make purchase."
+        return redirect(url_for('dashboard', username=username, message_balanceupdate=message))
+    
+    # Deduct total cost from balance
+    new_balance = balance - total_cost
+    query = "UPDATE client SET balance=:new_balance WHERE client_id=:username"
+    cursor.execute(query, {'new_balance': new_balance, 'username': username})
+    
+    # Add new stock purchase to portfolio
+    query = "SELECT stock_id FROM stock WHERE symbol=:stock_symbol"
+    cursor.execute(query, {'stock_symbol': stock_symbol})
+    stock_id = cursor.fetchone()[0]
+    
+    query = "SELECT quantity FROM portfolio WHERE client_id=:username AND stock_id=:stock_id"
+    cursor.execute(query, {'username': username, 'stock_id': stock_id})
+    result = cursor.fetchone()
+    
+    if result:
+        # Stock is already in portfolio, update quantity
+        new_quantity = result[0] + quantity
+        query = "UPDATE portfolio SET quantity=:new_quantity WHERE client_id=:username AND stock_id=:stock_id"
+        cursor.execute(query, {'new_quantity': new_quantity, 'username': username, 'stock_id': stock_id})
+    else:
+        # Stock is not in portfolio, insert new row
+        query = "INSERT INTO portfolio (client_id, stock_id, quantity) VALUES (:username, :stock_id, :quantity)"
+        cursor.execute(query, {'username': username, 'stock_id': stock_id, 'quantity': quantity})
+    
+    con.commit()
+    con.close()
+    
+    message = f"{quantity} shares of {stock_symbol} purchased for ${total_cost:.2f}."
+    return redirect(url_for('dashboard', username=username, message_balanceupdate=message))
 
 if __name__ == '__main__':
     app.run(debug=True)
