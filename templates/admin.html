@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="/static/admin_style.css">
+        <title>Admin</title>
+    </head>
+
+    <body>
+        <h1>Admin Page</h1>
+        <div class="container">
+            <h2>User Search</h2>
+            <div id="user-search" style="display: block;">
+                <div>
+                <form action="/admin/{{username}}" method="POST">
+                    <input type="text" id="user-id" placeholder="Enter User ID" name="user_name">
+                    <button type="submit" name="action" value="search_user"id="user-button">Search</button>
+                </form>
+            </div>   
+                <div id="user-search" style="display: block;">
+                {% if user :%}
+                    <table id="portfolio-table" style="margin-top: 2%;display: block; margin-left: 39%;">
+                        <thead>
+                            <tr>
+                                <th>User ID</th>
+                                <th>Name</th>
+                                <th>Balance</th>
+                                <th>Blocked</th>
+                            </tr>
+                            <tr>
+                                <td>{{user[0]}}</td>
+                                <td>{{user[1]}}</td>
+                                <td>{{user[2]}}</td>
+                                {% if user[-1]==1 %}
+                                <td>False</td>
+                                {% else %}
+                                <td>True</td>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                    </table>
+                {% endif %}
+                {% if message %}
+                    <p>{{ message }}</p>
+                {% endif %}
+                </div>
+                {% if user %}
+                <div id="user-search" style="display: block; margin-top: 2%;">
+                    <table id="portfolio-table">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Stock</th>
+                                <th>Quantity</th>
+                                <th>Avg. Buy Price</th>
+                                <th>Current Price</th>
+                                <th>Current Value</th>
+                                <th>Profit/Loss</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            
+                            {% for row in range(portfolio[-1]-4) %}
+                            <tr>
+                                <td>{{ portfolio[row][2] }}</td>
+                                <td>{{ portfolio[row][1] }}</td>
+                                <td>{{ portfolio[row][3] }}</td>   
+                                <td>{{ portfolio[row][4] }}</td>
+                                <td>{{ portfolio[row][5] }}</td>
+                                <td>{{ portfolio[row][6] }}</td>   
+                                <td>{{ portfolio[row][8] }}</td>
+                            </tr>
+                            
+                        {% endfor %}
+                          </tbody>
+                    </table>
+                    </div>
+                {% endif %}
+                
+            </div>
+            <h2>Modify Portfolio</h2>
+            <div id="modify-portfolio">
+
+                <form action="/admin/{{username}}" method="post">
+                    <input type="text" id="portfolio-user-id" placeholder="User ID" name="user_id">
+                    <input type="text" id="portfolio-stock-symbol" placeholder="Stock Symbol" name="symbol">
+                    <input type="number" id="portfolio-quantity" placeholder="Quantity" name="quantity">
+                    <button type="submit" id="portfolio-button" name="action" value="add">Add</button>
+                    <button type="submit" id="portfolio-button" name="action" value="remove">Remove</button>
+                </form>
+                {% if modify_message %}
+                    <p>{{ modify_message }}</p>
+                {% endif %}
+                <p id="portfolio-error"></p>
+            </div>
+            <h2>Block/Unblock User</h2>
+            <div id="block-unblock-user">
+
+                <form action="/admin/{username}" method="post">
+                    <input type="text" id="user-id-block" placeholder="User ID" name="user_id">
+                    <select id="user-action" name="user-action">
+                        <option value="block">Block</option>
+                        <option value="unblock">Unblock</option>
+                    </select>
+                    <button type="submit" id="block-unblock-button" name="action" value="user_action">Submit</button>
+                </form>
+                <p id="block-unblock-error">{{action_message}}</p>
+            </div>
+            <!-- <h2>Add/Remove Stock</h2> -->
+            <!-- <div id="add-remove-stock">
+
+                <form onsubmit="addRemoveStock(event)">
+                    <input type="text" id="stock-symbol" placeholder="Stock Symbol">
+                    <select id="stock-action">
+                        <option value="add">Add</option>
+                        <option value="remove">Remove</option>
+                    </select>
+                    <button type="submit" id="add-remove-stock-button">Submit</button>
+                </form>
+                <p id="add-remove-error"></p>
+            </div> -->
+            <button id="logout-button" onclick="location.href='/login'" style="margin-left: 49%; margin-top: 10%;">Logout</button>
+        </div>
+
+
+    </body>
+
+</html>

@@ -34,12 +34,10 @@
                     </select> -->
                     <button type="submit" id="buy-stock" name="action" value="buy">Buy</button>
                     <button type="submit" id="sell-stock" name="action" value="sell">Sell</button>
-                </form>
-                {% if message :%}
-                <div>
-                <p>{{message}}</p>
-                </div>
-                {% endif %}
+                
+                    {% if message %}
+                    <p id="user-search-results">{{message}}</p>
+                    {% endif %}
                 {% if search_results %}
                 <table id="portfolio-table" style='margin-top:1%'>
                     <thead>
@@ -63,9 +61,13 @@
                       {% endfor %}
                       
                     </tbody>
-                  </table>
+                  </table> 
+                  <button type="submit" id="watchlist" name="action" value="watchlist">Add to watchlist</button>
+                  <button type="submit" id="watchlist" name="action" value="rm_watchlist">Remove from watchlist</button>
                   {% endif %}
+                  
                 <p id="transaction-error"></p>
+              </form>
             </div>
 
             <div style="width: 100%; margin-top: 3%;">
@@ -89,7 +91,26 @@
                 </form>
                 
             </div>
-
+            <div id="portfolio">
+              <h2> Watchlist </h2>
+              <table id="portfolio-table">
+                <thead>
+                  <tr>
+                    <th>Stock Symbol</th>
+                    <th>Stock Name</th>
+                    <th>Current Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for result in watchlist %}
+                  <tr>
+                    <td>{{ result[0] }}</td>
+                    <td>{{ result[1] }}</td>
+                    <td>{{ result[2] }}</td>
+                  </tr>
+                  {% endfor %}
+              </table>
+            </div>
             <div id="portfolio" style="margin-top: 3%;">
                 <h2>My Portfolio</h2>
                 <table id="portfolio-table">
@@ -165,7 +186,8 @@
                   </table>
             </div>
 
-            
+        
+        <a href="/login"><button>Logout</button></a>
         </div>
 
     </body>

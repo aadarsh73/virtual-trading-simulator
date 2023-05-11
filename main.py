@@ -17,10 +17,18 @@ def user_login():
         dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
         con = cx_Oracle.connect(user="system", password="oracle", dsn=dsn)
         cursor = con.cursor()
-
+        query = "select active from client where client_id=:username"
+        cursor.execute(query, {'username': username})
+        result = cursor.fetchone()
+        if result[0] == 0:
+            return render_template('login.html', message='User blocked, contact admin')
+        
         query = "SELECT * FROM client WHERE client_id=:username AND pass=:password"
         cursor.execute(query, {'username': username, 'password': password})
         result = cursor.fetchone()
+        print(result)
+        if result[5] == 1:
+            return redirect(url_for('admin', username=username))
 
         if result:
             return redirect(url_for('dashboard', username=username, message_balanceupdate="",result=""))
@@ -40,7 +48,7 @@ def user_register():
         con = cx_Oracle.connect(user="system", password="oracle", dsn=dsn)
         cursor = con.cursor()
         try:
-            query = "INSERT INTO client VALUES (:userid, :username, 0, :password, :email, 1,0)"
+            query = "INSERT INTO client VALUES (:userid, :username, 0, :password, :email, 0,1)"
             cursor.execute(query, {'username': username, 'password': password, 'userid': userid, 'email': email})
             con.commit()
         except:
@@ -138,6 +146,25 @@ def dashboard(username):
     #     ) buy_orders ON s.stock_id = buy_orders.stock_id
     #     WHERE p.client_id = :username
     #     """
+    # portfolio_query = '''
+    #     SELECT s.stock_id, s.stock_name, s.symbl, p.quantity, AVG(o.price) as buy_price
+    #     FROM stock s
+    #     INNER JOIN portfolio p ON s.stock_id = p.stock_id
+    #     LEFT JOIN (
+    #         SELECT stock_id, price
+    #         FROM (
+    #             SELECT stock_id, price
+    #             FROM orders
+    #             WHERE client_id = :username AND order_type = 'BUY'
+    #             ORDER BY date_time DESC
+    #         )
+    #         WHERE ROWNUM <= 50
+    #     ) o ON s.stock_id = o.stock_id
+    #     WHERE p.client_id = :username
+    #     GROUP BY s.stock_id, s.stock_name, s.symbl, p.quantity, o.price
+    #     ORDER BY s.symbl
+    #     '''
+    
     portfolio_query = '''
         SELECT s.stock_id, s.stock_name, s.symbl, p.quantity, AVG(o.price) as buy_price
         FROM stock s
@@ -150,28 +177,42 @@ def dashboard(username):
                 WHERE client_id = :username AND order_type = 'BUY'
                 ORDER BY date_time DESC
             )
-            WHERE ROWNUM <= 5
+            WHERE ROWNUM <= 50
         ) o ON s.stock_id = o.stock_id
         WHERE p.client_id = :username
-        GROUP BY s.stock_id, s.stock_name, s.symbl, p.quantity, o.price
-        '''
+        GROUP BY s.stock_id, s.stock_name, s.symbl, p.quantity
+        ORDER BY s.symbl
+    '''
     portfolio = cursor.execute(portfolio_query, {'username': username}).fetchall()
     alterable_portfolio = []
     profit = 0
     invested = 0
     curr_val = 0
-    
+
+    watchlist_query = '''
+                select symbl, stock_name from stock natural join watchlist where client_id=:username
+            '''
+    watchlist = cursor.execute(watchlist_query, {'username': username}).fetchall()
+    watchlist_new = watchlist
+    watchlist = []
+    for x in watchlist_new:
+        watchlist.append(list(x))
+    for i in watchlist :
+        quote = get_live_price(f'{i[0]}.NS')
+        i.append("{:.2f}".format(quote))
+    # print(watchlist)
     for x in portfolio:
         alterable_portfolio.append(list(x))
-    print(alterable_portfolio)
+    # print(alterable_portfolio)
     for x in alterable_portfolio:
         if x[4] == None:
             break;
         quote = get_live_price(f'{x[2]}.NS')
         print("Quote is " + str(quote))
+        x[4] = "{:.2f}".format(float(x[4]))
         x.append("{:.2f}".format(quote))
         x.append("{:.2f}".format(x[3]*quote))
-        x.append("{:.2f}".format(x[3]*x[4]))
+        x.append("{:.2f}".format(x[3]*float(x[4])))
         x.append("{:.2f}".format(float(x[6])-float(x[7])))
         profit += float(x[8])
         invested += float(x[7])
@@ -219,9 +260,10 @@ def dashboard(username):
                     break;
                 quote = get_live_price(f'{x[2]}.NS')
                 print("Quote is " + str(quote))
+                x[4] = "{:.2f}".format(float(x[4]))
                 x.append("{:.2f}".format(quote))
                 x.append("{:.2f}".format(x[3]*quote))
-                x.append("{:.2f}".format(x[3]*x[4]))
+                x.append("{:.2f}".format(x[3]*float(x[4])))
                 x.append("{:.2f}".format(float(x[6])-float(x[7])))
                 profit += float(x[8])
                 invested += float(x[7])
@@ -233,7 +275,15 @@ def dashboard(username):
             alterable_portfolio.append(len(alterable_portfolio)+1)
             # print(alterable_portfolio)
             portfolio = alterable_portfolio
-            return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=search_results, portfolio=portfolio, symbol = symbol)
+            watchlist = cursor.execute(watchlist_query, {'username': username}).fetchall()
+            watchlist_new = watchlist
+            watchlist = []
+            for x in watchlist_new:
+                watchlist.append(list(x))
+            for i in watchlist :
+                quote = get_live_price(f'{i[0]}.NS')
+                i.append("{:.2f}".format(quote))
+            return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=search_results, portfolio=portfolio, watchlist=watchlist, symbol = symbol)
         elif action == 'buy':
             stock_symbol = request.form['stock_input']
             quantity = int(request.form['order_quantity'])
@@ -252,7 +302,15 @@ def dashboard(username):
             
             if total_cost > balance:
                 message = "Insufficient funds to make purchase."
-                return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], message = message, portfolio=portfolio)
+                watchlist = cursor.execute(watchlist_query, {'username': username}).fetchall()
+                watchlist_new = watchlist
+                watchlist = []
+                for x in watchlist_new:
+                    watchlist.append(list(x))
+                for i in watchlist :
+                    quote = get_live_price(f'{i[0]}.NS')
+                    i.append("{:.2f}".format(quote))
+                return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], message = message, portfolio=portfolio, watchlist=watchlist)
             
             # Deduct total cost from balance
 
@@ -296,9 +354,10 @@ def dashboard(username):
                     break;
                 quote = get_live_price(f'{x[2]}.NS')
                 print("Quote is " + str(quote))
+                x[4] = "{:.2f}".format(float(x[4]))
                 x.append("{:.2f}".format(quote))
                 x.append("{:.2f}".format(x[3]*quote))
-                x.append("{:.2f}".format(x[3]*x[4]))
+                x.append("{:.2f}".format(x[3]*float(x[4])))
                 x.append("{:.2f}".format(float(x[6])-float(x[7])))
                 profit += float(x[8])
                 invested += float(x[7])
@@ -310,12 +369,19 @@ def dashboard(username):
             alterable_portfolio.append(len(alterable_portfolio)+1)
             # print(alterable_portfolio)
             portfolio = alterable_portfolio
-            
+            watchlist = cursor.execute(watchlist_query, {'username': username}).fetchall()
+            watchlist_new = watchlist
+            watchlist = []
+            for x in watchlist_new:
+                watchlist.append(list(x))
+            for i in watchlist :
+                quote = get_live_price(f'{i[0]}.NS')
+                i.append("{:.2f}".format(quote))
             con.commit()
             con.close()
             action=''
             message = f"{quantity} shares of {stock_symbol} purchased for Rs.{total_cost:.2f}."
-            return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], message = message, portfolio=portfolio)
+            return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], message = message, portfolio=portfolio, watchlist=watchlist)
         elif action == 'sell':
             stock_symbol = request.form['stock_input']
             quantity = int(request.form['order_quantity'])
@@ -337,10 +403,26 @@ def dashboard(username):
 
             if quantity_available is None:
                 message = "You dont own this stock."
-                return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], message = message, portfolio=portfolio)
+                watchlist = cursor.execute(watchlist_query, {'username': username}).fetchall()
+                watchlist_new = watchlist
+                watchlist = []
+                for x in watchlist_new:
+                    watchlist.append(list(x))
+                for i in watchlist :
+                    quote = get_live_price(f'{i[0]}.NS')
+                    i.append("{:.2f}".format(quote))
+                return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], message = message, portfolio=portfolio, watchlist=watchlist)
             elif int(quantity_available[0])<quantity:
                 message = "Not enough shares to sell."
-                return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], message = message)
+                watchlist = cursor.execute(watchlist_query, {'username': username}).fetchall()
+                watchlist_new = watchlist
+                watchlist = []
+                for x in watchlist_new:
+                    watchlist.append(list(x))
+                for i in watchlist :
+                    quote = get_live_price(f'{i[0]}.NS')
+                    i.append("{:.2f}".format(quote))
+                return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], message = message , watchlist=watchlist)
             cursor.callproc('sell_stock', [username, stock_symbol, quantity, price])
             query = "SELECT balance FROM client WHERE client_id=:username"
             cursor.execute(query, {'username': username})
@@ -362,9 +444,10 @@ def dashboard(username):
                     break;
                 quote = get_live_price(f'{x[2]}.NS')
                 print("Quote is " + str(quote))
+                x[4] = "{:.2f}".format(float(x[4]))
                 x.append("{:.2f}".format(quote))
                 x.append("{:.2f}".format(x[3]*quote))
-                x.append("{:.2f}".format(x[3]*x[4]))
+                x.append("{:.2f}".format(x[3]*float(x[4])))
                 x.append("{:.2f}".format(float(x[6])-float(x[7])))
                 profit += float(x[8])
                 invested += float(x[7])
@@ -376,15 +459,114 @@ def dashboard(username):
             alterable_portfolio.append(len(alterable_portfolio)+1)
             # print(alterable_portfolio)
             portfolio = alterable_portfolio
+            watchlist = cursor.execute(watchlist_query, {'username': username}).fetchall()
+            watchlist_new = watchlist
+            watchlist = []
+            for x in watchlist_new:
+                watchlist.append(list(x))
+            for i in watchlist :
+                quote = get_live_price(f'{i[0]}.NS')
+                i.append("{:.2f}".format(quote))
             con.commit()
             con.close()
             action=''
             message = f"{quantity} shares of {stock_symbol} sold for Rs.{total_cost:.2f}."
-            return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], message = message, portfolio=portfolio)
-            
+            return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], message = message, portfolio=portfolio, watchlist=watchlist)
+        elif action== 'watchlist' : 
+            symbol = request.form['stock_input']
+            query = "select * from watchlist where client_id=:username and stock_id=(select stock_id from stock where symbl=:symbol)"
+            watchlist = cursor.execute(watchlist_query, {'username': username}).fetchall()
+            watchlist_new = watchlist
+            watchlist = []
+            for x in watchlist_new:
+                watchlist.append(list(x))
+            for i in watchlist :
+                quote = get_live_price(f'{i[0]}.NS')
+                i.append("{:.2f}".format(quote))
+            if cursor.execute(query, {'username': username, 'symbol': symbol}).fetchone() is  not None:
+                return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], message = "Stock already in watchlist", portfolio=portfolio, watchlist=watchlist)
+            query = '''
+                insert into watchlist values (:username, (select stock_id from stock where symbl=:symbol))
+                '''        
+            cursor.execute(query, {'username': username, 'symbol': symbol})
+            con.commit()
 
-    
-    return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], portfolio=portfolio)
+            query="select * from transaction where client_id=:username order by transaction_date desc"
+            cursor.execute(query, {'username': username})
+            transactions = cursor.fetchall()
+            portfolio = cursor.execute(portfolio_query, {'username': username}).fetchall()
+            alterable_portfolio = []
+            profit = 0
+            invested = 0
+            curr_val = 0
+            
+            for x in portfolio:
+                alterable_portfolio.append(list(x))
+            print(alterable_portfolio)
+            for x in alterable_portfolio:
+                if x[4] == None:
+                    break;
+                quote = get_live_price(f'{x[2]}.NS')
+                print("Quote is " + str(quote))
+                x[4] = "{:.2f}".format(float(x[4]))
+                x.append("{:.2f}".format(quote))
+                x.append("{:.2f}".format(x[3]*quote))
+                x.append("{:.2f}".format(x[3]*float(x[4])))
+                x.append("{:.2f}".format(float(x[6])-float(x[7])))
+                profit += float(x[8])
+                invested += float(x[7])
+                curr_val += float(x[6])
+            
+            alterable_portfolio.append("{:.2f}".format(profit))
+            alterable_portfolio.append(invested)
+            alterable_portfolio.append(curr_val)
+            alterable_portfolio.append(len(alterable_portfolio)+1)
+            # print(alterable_portfolio)
+            portfolio = alterable_portfolio
+            watchlist = cursor.execute(watchlist_query, {'username': username}).fetchall()
+            watchlist_new = watchlist
+            watchlist = []
+            for x in watchlist_new:
+                watchlist.append(list(x))
+            for i in watchlist :
+                quote = get_live_price(f'{i[0]}.NS')
+                i.append("{:.2f}".format(quote))
+            
+            con.commit()
+            con.close()
+            return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[],portfolio=portfolio, watchlist=watchlist, message=f"{symbol} added to watchlist")
+        elif action=='rm_watchlist':
+            symbol = request.form['stock_input']
+            query = "select * from watchlist where client_id=:username and stock_id=(select stock_id from stock where symbl=:symbol)"
+            watchlist = cursor.execute(watchlist_query, {'username': username}).fetchall()
+            watchlist_new = watchlist
+            watchlist = []
+            for x in watchlist_new:
+                watchlist.append(list(x))
+            for i in watchlist :
+                quote = get_live_price(f'{i[0]}.NS')
+                i.append("{:.2f}".format(quote))
+            if cursor.execute(query, {'username': username, 'symbol': symbol}).fetchone() is None:
+                return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], message = "Stock not in watchlist", portfolio=portfolio, watchlist=watchlist)
+            query = '''
+                delete from watchlist where client_id=:username and stock_id=(select stock_id from stock where symbl=:symbol)
+                '''
+            cursor.execute(query, {'username': username, 'symbol': symbol})
+            con.commit()
+            watchlist = cursor.execute(watchlist_query, {'username': username}).fetchall()
+            watchlist_new = watchlist
+            watchlist = []
+            for x in watchlist_new:
+                watchlist.append(list(x))
+            for i in watchlist :
+                quote = get_live_price(f'{i[0]}.NS')
+                i.append("{:.2f}".format(quote))
+            con.commit()
+            con.close()
+            return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], portfolio=portfolio, watchlist=watchlist, message=f"{symbol} removed from watchlist")
+
+            
+    return render_template('maininterface.html', username=username, balance=bal[0], transactions=transactions, search_results=[], portfolio=portfolio, watchlist=watchlist)
 
 @app.route('/dashboard/<username>/balance_update', methods=['POST', 'GET'])
 def balance_update(username):
@@ -491,6 +673,184 @@ def buy(username):
     
     message = f"{quantity} shares of {stock_symbol} purchased for ${total_cost:.2f}."
     return redirect(url_for('dashboard', username=username, message_balanceupdate=message))
+
+@app.route('/admin/<username>', methods=['POST', 'GET'])
+def admin(username, message=None, user=None):
+    portfolio_query = '''
+        SELECT s.stock_id, s.stock_name, s.symbl, p.quantity, AVG(o.price) as buy_price
+        FROM stock s
+        INNER JOIN portfolio p ON s.stock_id = p.stock_id
+        LEFT JOIN (
+            SELECT stock_id, price
+            FROM (
+                SELECT stock_id, price
+                FROM orders
+                WHERE client_id = :username AND order_type = 'BUY'
+                ORDER BY date_time DESC
+            )
+            WHERE ROWNUM <= 50
+        ) o ON s.stock_id = o.stock_id
+        WHERE p.client_id = :username
+        GROUP BY s.stock_id, s.stock_name, s.symbl, p.quantity
+        ORDER BY s.symbl
+        '''
+    if request.method=='POST':
+        if request.form['action'] == 'search_user':
+            dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
+            con = cx_Oracle.connect(user="system", password="oracle", dsn=dsn)
+            cursor = con.cursor()
+            query = "SELECT * FROM client WHERE client_id=:username"
+            cursor.execute(query, {'username': request.form['user_name']})
+            result = cursor.fetchone()
+            portfolio = cursor.execute(portfolio_query, {'username': request.form['user_name']}).fetchall()
+            alterable_portfolio = []
+            profit = 0
+            invested = 0
+            curr_val = 0
+            
+            for x in portfolio:
+                alterable_portfolio.append(list(x))
+            print(alterable_portfolio)
+            for x in alterable_portfolio:
+                if x[4] == None:
+                    break;
+                quote = get_live_price(f'{x[2]}.NS')
+                print("Quote is " + str(quote))
+                x[4] = "{:.2f}".format(float(x[4]))
+                x.append("{:.2f}".format(quote))
+                x.append("{:.2f}".format(x[3]*quote))
+                x.append("{:.2f}".format(x[3]*float(x[4])))
+                x.append("{:.2f}".format(float(x[6])-float(x[7])))
+                profit += float(x[8])
+                invested += float(x[7])
+                curr_val += float(x[6])
+            
+            alterable_portfolio.append("{:.2f}".format(profit))
+            alterable_portfolio.append(invested)
+            alterable_portfolio.append(curr_val)
+            alterable_portfolio.append(len(alterable_portfolio)+1)
+            # print(alterable_portfolio)
+            portfolio = alterable_portfolio
+            if result:
+                return render_template('admin.html', username=username, user=result, portfolio=portfolio)
+            else:
+                return render_template('admin.html', username=username, message="User not found")
+        elif request.form['action'] == 'add':
+            user_id = request.form['user_id']
+            symbol = request.form['symbol']
+            quantity = request.form['quantity']
+            quote = get_live_price(f'{symbol}.NS')
+            price = "{:.2f}".format(quote)
+            price =float(price)
+            total_cost = int(quantity) * price
+            
+            dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
+            con = cx_Oracle.connect(user="system", password="oracle", dsn=dsn)
+            cursor = con.cursor()
+            
+            query = "SELECT balance FROM client WHERE client_id=:username"
+            cursor.execute(query, {'username': user_id})
+            balance = float(cursor.fetchone()[0])
+            if total_cost > balance:
+                message = "Insufficient funds to make purchase."
+                return render_template('admin.html', username=username,modify_message=message)
+            cursor.callproc('buy_stock', [user_id, symbol, quantity, price])
+            # Add new stock purchase to portfolio
+            query = "SELECT stock_id FROM stock WHERE symbl=:stock_symbol"
+            cursor.execute(query, {'stock_symbol': symbol})
+            stock_id = cursor.fetchone()[0]
+            
+            query = "SELECT quantity FROM portfolio WHERE client_id=:username AND stock_id=:stock_id"
+            cursor.execute(query, {'username': user_id, 'stock_id': stock_id})
+            result = cursor.fetchone()
+            if result:
+                # Stock is already in portfolio, update quantity
+                new_quantity = int(result[0]) + int(quantity)
+                query = "UPDATE portfolio SET quantity=:new_quantity WHERE client_id=:username AND stock_id=:stock_id"
+                cursor.execute(query, {'new_quantity': new_quantity, 'username': user_id, 'stock_id': stock_id})
+            else:
+                # Stock is not in portfolio, insert new row
+                query = "INSERT INTO portfolio (client_id, stock_id, quantity) VALUES (:username, :stock_id, :quantity)"
+                cursor.execute(query, {'username': user_id, 'stock_id': stock_id, 'quantity': quantity})
+            con.commit()
+            con.close()
+            message = f"{quantity} shares of {symbol} purchased at Rs.{total_cost:.2f} for {user_id}."
+            return render_template('admin.html', username=username,modify_message=message)
+        elif request.form['action'] == 'remove':
+            user_id = request.form['user_id']
+            stock_symbol = request.form['symbol']
+            quantity = float(request.form['quantity'])
+            quote = get_live_price(f'{stock_symbol}.NS')
+            price = "{:.2f}".format(quote)
+            price =float(price)    
+            total_cost = quantity * price
+            
+            dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
+            con = cx_Oracle.connect(user="system", password="oracle", dsn=dsn)
+            cursor = con.cursor()
+            
+            query = "SELECT balance FROM client WHERE client_id=:username"
+            cursor.execute(query, {'username': user_id})
+            balance = int(cursor.fetchone()[0])
+            query = "SELECT quantity FROM portfolio WHERE stock_id = (select stock_id from stock where symbl=:stock_symbol) and client_id=:username"
+            cursor.execute(query, {'stock_symbol': stock_symbol, 'username': user_id})
+            quantity_available = cursor.fetchone()
+
+            if quantity_available is None:
+                message = f"{user_id} doesn't this stock."
+                return render_template('admin.html', username=username,modify_message=message)
+            elif int(quantity_available[0])<quantity:
+                message = "Not enough shares to sell."
+                return render_template('admin.html', username=username,modify_message=message)
+            cursor.callproc('sell_stock', [user_id, stock_symbol, quantity, price])
+            con.commit()
+            con.close()
+            message = f"{quantity} shares of {stock_symbol} sold at Rs.{total_cost:.2f} for {user_id}."
+            return render_template('admin.html', username=username,modify_message=message)
+        elif request.form['action'] == 'user_action':
+            action = request.form['user-action']
+            user_id = request.form['user_id']
+            dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
+            con = cx_Oracle.connect(user="system", password="oracle", dsn=dsn)
+            cursor = con.cursor()
+            if action=='block':
+                print("Entered the block")
+                query = "SELECT active FROM client WHERE client_id=:username"
+                cursor.execute(query, {'username': user_id})
+                result = cursor.fetchone()
+                if result[0]==0:
+                    message = "User already blocked"
+                    print(message)
+                    con.commit()
+                    con.close()
+                    return render_template('admin.html', username=username,action_message=message)
+                query="update client set active=0 where client_id=:username"
+                cursor.execute(query, {'username': user_id})
+                message="User blocked"
+                print(message)
+                con.commit()
+                con.close()
+                return render_template('admin.html', username=username,action_message=message)
+            elif action=='unblock':
+                query = "SELECT active FROM client WHERE client_id=:username"
+                cursor.execute(query, {'username': user_id})
+                result = cursor.fetchone()
+                if result[0]==1:
+                    message = "User already unblocked"
+                    con.commit()
+                    con.close()
+                    return render_template('admin.html', username=username,action_message=message)
+                query="update client set active=1 where client_id=:username"
+                cursor.execute(query, {'username': user_id})
+                message="User unblocked"
+                con.commit()
+                con.close()
+                return render_template('admin.html', username=username,action_message=message)
+
+
+                
+                
+    return render_template('admin.html', username=username, message=message, user=user)
 
 if __name__ == '__main__':
     app.run(debug=True)

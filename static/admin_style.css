@@ -1,0 +1,87 @@
+body {
+    background-image: url('https://coolbackgrounds.io/images/backgrounds/index/ranger-4df6c1b6.png');
+    background-size: cover;
+    margin-top: 5%;
+}
+
+h1,
+h2 {
+    text-align: center;
+    color: white;
+    text-decoration: underline 1px;
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    font-weight: 500;
+}
+
+#user-search,
+#modify-portfolio,
+#block-unblock-user,
+#add-remove-stock {
+    display: flex;
+    justify-content: center;
+    text-align: center;
+}
+
+#user-id {
+    border: 1px solid black;
+    margin-right: 2px;
+    border-radius: 10px;
+    text-align: center;
+    background-color: lightyellow;
+}
+
+#user-button {
+    border: 1px solid;
+    border-radius: 20px;
+    color: black;
+    background-color: white;
+}
+
+#portfolio-user-id,
+#portfolio-stock-symbol,
+#portfolio-quantity,
+#user-id-block,
+#stock-symbol {
+    border: 1px solid black;
+    margin-right: 2px;
+    border-radius: 5px;
+    text-align: center;
+    background-color: lightyellow;
+}
+
+#portfolio-quantity {
+    border: 1px solid;
+    border-radius: 5px;
+}
+
+#portfolio-button,
+#block-unblock-button,
+#add-remove-stock-button {
+    border: 1px solid;
+    border-radius: 20px;
+    color: black;
+    background-color: white;
+}
+#portfolio-table {
+    width: 50%;
+    border-collapse: collapse;
+    text-align: center;
+    margin: auto;
+  }
+  
+  /* Style for portfolio table header */
+  #portfolio-table th {
+    padding: 0.5rem;
+    background-color: #f8f8f8;
+    color: black;
+    font-weight: bold;
+    text-transform: uppercase;
+    border: 1px solid #000000;
+    background-color: rgb(38, 115, 230);
+  }
+  
+  /* Style for portfolio table rows */
+  #portfolio-table td {
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+  }
