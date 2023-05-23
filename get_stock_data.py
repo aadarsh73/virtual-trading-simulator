@@ -9,7 +9,7 @@ querystring = {"country":"INDIA","exchange":"NSE","format":"json"}
 
 headers = {
 	"content-type": "application/octet-stream",
-	"X-RapidAPI-Key": "6d91ff0a31msh95476c6bcbd8275p1c07dbjsn52b1a3f55df6",
+	"X-RapidAPI-Key": "YOUR_API_KEY_HERE",
 	"X-RapidAPI-Host": "twelve-data1.p.rapidapi.com"
 }
 
